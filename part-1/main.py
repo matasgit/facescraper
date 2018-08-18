@@ -5,11 +5,13 @@ import requests
 import wget
 
 
-LIMIT = 50
-MAX_OFFSET = 99951  # maximum offset allowed by IMDb (99,951+50-1 = 100,000 results)
+LIMIT = 100
+MAX_OFFSET = 4999901  # maximum offset (4,999,901+100-1 = 5,000,000 results)
 FILE_SAVE_PATH = 'images/'
+LOG_PATH = 'log.txt'
 
 offset = 1
+list_url = 'https://www.imdb.com/search/name?gender=male,female&count=100'
 
 if not os.path.exists(FILE_SAVE_PATH):
     os.makedirs(FILE_SAVE_PATH)
@@ -20,12 +22,14 @@ while offset <= MAX_OFFSET:
         print('Loading list...')
         print('Offset:', offset, '\n')
 
-        list_url = 'http://www.imdb.com/search/name?gender=male,female&start=' + str(offset)
         list = requests.get(list_url)
+        print('List URL:', list_url, '\n')
 
         if list.status_code == 200:
 
             soup = BeautifulSoup(list.content, 'html.parser')
+            next_list_url = soup.select('.lister-page-next.next-page')
+            next_list_url = 'https://www.imdb.com' + next_list_url[0]['href']
             links = soup.select('h3.lister-item-header > a')
 
             for link in links:
@@ -59,6 +63,11 @@ while offset <= MAX_OFFSET:
                     print('\n')
                 except:
                     print('Unexpected error:', sys.exc_info()[0], '\n')
+
+            log_file = open(LOG_PATH, 'w')
+            log_file.write("Offset: " + str(offset) + '\n' + list_url + '\n\n')
+            log_file.close()
+            list_url = next_list_url
 
         else:
             print(list_url, 'HTTP status:', list.status_code, '\n')
